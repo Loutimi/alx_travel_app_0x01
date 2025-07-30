@@ -1,6 +1,11 @@
-from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ListingViewSet, BookingViewSet
+
+router = DefaultRouter()
+router.register(r'Listing', ListingViewSet)
+router.register(r'Booking', BookingViewSet)
 
 urlpatterns = [
-    
+    path('api/', include(router.urls)),
 ]
