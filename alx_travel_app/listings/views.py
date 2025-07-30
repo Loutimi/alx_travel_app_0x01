@@ -16,9 +16,12 @@ class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Booking.objects.all()
-        return Booking.objects.filter(user=self.request.user)
+        user = self.request.user
+        if user.is_authenticated:
+            if self.request.user.is_staff:
+                return Booking.objects.all()  # Admins/staff see all bookings
+            return Booking.objects.filter(user=user)  # Normal users see only theirs
+        return Booking.objects.none()  # Anonymous users see nothing
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
