@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
+from django.core.exceptions import ValidationError
+from datetime import timedelta
 
 
 class Listing(models.Model):
@@ -33,8 +35,18 @@ class Booking(models.Model):
     status = models.CharField(choices=STATUS_CHOICES, max_length=10)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if not self.total_price:
+            num_nights = (self.end_date - self.start_date).days
+            self.total_price = self.listing.price_per_night * num_nights
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.start_date >= self.end_date:
+            raise ValidationError('End date must be after start date (at least one night)')
+
     def __str__(self):
-        return f"Booking: {self.booking_id} for Listing: {self.listing_id}"
+        return f"Booking: {self.booking_id} for Listing: {self.listing.name}"
 
 
 class Review(models.Model):
@@ -46,6 +58,14 @@ class Review(models.Model):
     rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES, null=False)
     comment = models.TextField(null=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def average_rating(self):
+        reviews = self.reviews.all()
+        if reviews.exists():
+            return round(sum([r.rating for r in reviews]) / reviews.count(), 1)
+        return None
+
 
     class Meta:
         unique_together = ('listing', 'user')  # Prevents duplicate reviews for same listing by same user
